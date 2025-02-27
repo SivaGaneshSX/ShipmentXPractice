@@ -1,5 +1,8 @@
 package com.example.demo;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
@@ -10,6 +13,9 @@ import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -38,6 +44,8 @@ public class SuccessPageActivity extends FragmentActivity implements OnMapReadyC
     private Button showRouteButton;
     private double currentLat, currentLng;
     private String apiKey;
+    private Button signOutButton;
+    private GoogleSignInClient googleSignInClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +56,13 @@ public class SuccessPageActivity extends FragmentActivity implements OnMapReadyC
 
         destinationInput = findViewById(R.id.destinationInput);
         showRouteButton = findViewById(R.id.showRouteButton);
+        signOutButton = findViewById(R.id.signOutButton); // Initialize sign out button
+
+        // Initialize Google Sign-In client
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+        googleSignInClient = GoogleSignIn.getClient(this, gso);
 
         // Get current location from Intent
         currentLat = getIntent().getDoubleExtra("LATITUDE", 0.0);
@@ -73,7 +88,28 @@ public class SuccessPageActivity extends FragmentActivity implements OnMapReadyC
 
             drawRoute(destCoordinates[0], destCoordinates[1]);
         });
+
+        // Set click listener for sign out button
+        signOutButton.setOnClickListener(v -> signOut());
     }
+    private void signOut() {
+        googleSignInClient.signOut().addOnCompleteListener(this, task -> {
+            // Clear SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("UserDetails", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.clear();
+            editor.apply();
+
+            Toast.makeText(this, "Signed out successfully", Toast.LENGTH_SHORT).show();
+
+            // Redirect to LoginActivity
+            Intent intent = new Intent(SuccessPageActivity.this, MainActivity.class); // Change to your actual login activity
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Clear back stack
+            startActivity(intent);
+            finish();
+        });
+    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
